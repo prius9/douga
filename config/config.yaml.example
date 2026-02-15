@@ -1,0 +1,84 @@
+# Claude to Vrew 動画生成システム設定ファイル
+
+# Claude API設定
+claude:
+  model: claude-sonnet-4-5-20250929
+  max_tokens: 4096
+
+# 動画設定
+video:
+  default_duration: 60  # 秒
+  default_style: informative  # informative, entertaining, educational
+  target_audience: general
+  resolution:
+    width: 1920
+    height: 1080
+  fps: 30
+
+# トピック選択設定
+topic_selection:
+  strategy: random  # random, trending, category
+  daily_count: 1
+  categories:
+    - テクノロジー
+    - ビジネス
+    - 教育・学習
+    - ライフスタイル
+    - クリエイティブ
+
+# Vrew設定
+vrew:
+  cli_enabled: false
+  auto_render: false
+  project_format: json
+  export_formats:
+    - srt
+    - txt
+    - json
+
+# スケジューリング設定
+scheduling:
+  enabled: true
+  time: "07:00"  # 毎朝7時
+  timezone: Asia/Tokyo
+
+# 出力設定
+output:
+  base_path: ./output
+  scripts_folder: scripts
+  vrew_projects_folder: vrew_projects
+  videos_folder: videos
+  retention_days: 30  # 古いファイルの保持日数
+
+# ログ設定
+logging:
+  level: INFO  # DEBUG, INFO, WARNING, ERROR
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file_retention_days: 30
+
+# 通知設定
+notifications:
+  slack:
+    enabled: false
+    webhook_url: ""
+  email:
+    enabled: false
+    smtp_server: ""
+    smtp_port: 587
+    from_address: ""
+    to_addresses: []
+
+# バリエーション管理
+variations:
+  templates:
+    - modern
+    - minimal
+    - colorful
+  bgm_library:
+    - upbeat
+    - calm
+    - energetic
+  thumbnail_styles:
+    - bold
+    - clean
+    - artistic

@@ -1,0 +1,87 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv
+
+# Environment Variables
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/*
+!logs/.gitkeep
+*.log
+
+# Output Files
+output/scripts/*
+!output/scripts/.gitkeep
+output/videos/*
+!output/videos/.gitkeep
+output/vrew_projects/*
+!output/vrew_projects/.gitkeep
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+
+# Config files (keep examples)
+config/config.yaml
+# Keep config.yaml.example
+
+# API Keys and Secrets
+*.key
+*.pem
+secrets/
+credentials/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Backup files
+*.bak
+*.backup
+
+# Test files
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+
+# Keep empty directories with .gitkeep
+!.gitkeep

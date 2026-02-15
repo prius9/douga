@@ -1,0 +1,97 @@
+{
+  "version": "1.0",
+  "title": "動画タイトル",
+  "description": "動画の説明",
+  "settings": {
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "fps": 30,
+    "audio": {
+      "voice": "auto",
+      "speed": 1.0,
+      "pitch": 1.0,
+      "volume": 1.0
+    },
+    "style": {
+      "theme": "modern",
+      "font": "Noto Sans JP",
+      "text_color": "#FFFFFF",
+      "background_color": "#000000",
+      "subtitle_position": "bottom",
+      "subtitle_size": "medium"
+    },
+    "transitions": {
+      "type": "fade",
+      "duration": 0.3
+    }
+  },
+  "scenes": [
+    {
+      "scene_id": 1,
+      "start_time": 0,
+      "duration": 10,
+      "text": "オープニング\n動画のタイトルが表示されます",
+      "subtitle": "こんにちは！今日のテーマは...",
+      "visual": {
+        "type": "text_overlay",
+        "background": "gradient",
+        "animation": "fade_in",
+        "instructions": "タイトル画面を表示"
+      },
+      "audio": {
+        "narration": "こんにちは！今日のテーマは〇〇についてです。",
+        "voice_type": "auto",
+        "bgm": "intro"
+      }
+    },
+    {
+      "scene_id": 2,
+      "start_time": 10,
+      "duration": 40,
+      "text": "メインコンテンツ",
+      "subtitle": "ポイント1、ポイント2、ポイント3",
+      "visual": {
+        "type": "bullet_points",
+        "background": "solid",
+        "animation": "slide_in",
+        "instructions": "箇条書きで要点を表示"
+      },
+      "audio": {
+        "narration": "まず最初のポイントは...",
+        "voice_type": "auto",
+        "bgm": "main"
+      }
+    },
+    {
+      "scene_id": 3,
+      "start_time": 50,
+      "duration": 10,
+      "text": "まとめ・クロージング",
+      "subtitle": "ご視聴ありがとうございました",
+      "visual": {
+        "type": "text_overlay",
+        "background": "gradient",
+        "animation": "fade_out",
+        "instructions": "まとめとCTAを表示"
+      },
+      "audio": {
+        "narration": "今日のポイントをまとめると...ご視聴ありがとうございました！",
+        "voice_type": "auto",
+        "bgm": "outro"
+      }
+    }
+  ],
+  "assets": {
+    "bgm": {
+      "intro": "assets/bgm/intro.mp3",
+      "main": "assets/bgm/main.mp3",
+      "outro": "assets/bgm/outro.mp3"
+    },
+    "images": {
+      "logo": "assets/images/logo.png",
+      "background": "assets/images/background.jpg"
+    }
+  }
+}

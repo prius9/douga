@@ -1,0 +1,18 @@
+# Claude API
+anthropic>=0.39.0
+
+# YAML support
+PyYAML>=6.0.1
+
+# Environment variables
+python-dotenv>=1.0.0
+
+# Optional: For advanced features
+requests>=2.31.0
+
+# Optional: For web scraping (trending topics)
+beautifulsoup4>=4.12.0
+lxml>=5.0.0
+
+# Optional: For notifications
+slack-sdk>=3.27.0

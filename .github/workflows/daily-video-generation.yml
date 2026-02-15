@@ -1,0 +1,165 @@
+name: Daily Video Generation
+
+on:
+  # 毎日午前7時（UTC 22時 = JST 7時）に実行
+  schedule:
+    - cron: '0 22 * * *'
+
+  # 手動実行も可能
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: '動画のトピック（空欄で自動選択）'
+        required: false
+        type: string
+      topic_strategy:
+        description: 'トピック選択戦略'
+        required: false
+        default: 'random'
+        type: choice
+        options:
+          - random
+          - trending
+          - category
+      count:
+        description: '生成する動画の数'
+        required: false
+        default: '1'
+        type: string
+      duration:
+        description: '動画の長さ（秒）'
+        required: false
+        default: '60'
+        type: string
+
+jobs:
+  generate-video:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: チェックアウト
+        uses: actions/checkout@v4
+
+      - name: Python環境のセットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 依存関係のインストール
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 出力ディレクトリの作成
+        run: |
+          mkdir -p output/scripts
+          mkdir -p output/vrew_projects
+          mkdir -p output/videos
+          mkdir -p logs
+
+      - name: 動画生成の実行
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          python main.py \
+            ${{ github.event.inputs.topic && format('--topic "{0}"', github.event.inputs.topic) || '' }} \
+            --topic-strategy ${{ github.event.inputs.topic_strategy || 'random' }} \
+            --count ${{ github.event.inputs.count || '1' }} \
+            --duration ${{ github.event.inputs.duration || '60' }} \
+            --log-level INFO
+
+      - name: 生成されたファイルをアップロード
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: generated-video-files-${{ github.run_number }}
+          path: |
+            output/scripts/
+            output/vrew_projects/
+            logs/
+          retention-days: 30
+
+      - name: 生成ログのサマリー表示
+        if: always()
+        run: |
+          echo "## 動画生成結果" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f logs/generation_log.json ]; then
+            echo "### 最新の生成ログ:" >> $GITHUB_STEP_SUMMARY
+            echo '```json' >> $GITHUB_STEP_SUMMARY
+            tail -n 50 logs/generation_log.json >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Slackへ通知（成功）
+        if: success() && vars.SLACK_WEBHOOK_URL
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "✅ 動画生成が完了しました",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*動画生成完了* ✅\n\n生成数: ${{ github.event.inputs.count || '1' }}本\n実行時刻: ${{ github.event.repository.updated_at }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ vars.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+      - name: Slackへ通知（失敗）
+        if: failure() && vars.SLACK_WEBHOOK_URL
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "❌ 動画生成が失敗しました",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*動画生成失敗* ❌\n\nログを確認してください。"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ vars.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+  # オプション: 生成されたスクリプトをコミット
+  commit-scripts:
+    needs: generate-video
+    runs-on: ubuntu-latest
+    if: success()
+
+    steps:
+      - name: チェックアウト
+        uses: actions/checkout@v4
+
+      - name: 成果物のダウンロード
+        uses: actions/download-artifact@v4
+        with:
+          name: generated-video-files-${{ github.run_number }}
+          path: output/
+
+      - name: 生成されたスクリプトをコミット
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add output/scripts/ logs/
+          git diff --quiet && git diff --staged --quiet || git commit -m "Add generated video scripts - $(date +'%Y-%m-%d')"
+
+      - name: 変更をプッシュ
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
