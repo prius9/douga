@@ -60,6 +60,7 @@ temp/
 
 # Config files (keep examples)
 config/config.yaml
+config/google_credentials.json
 # Keep config.yaml.example
 
 # API Keys and Secrets

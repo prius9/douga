@@ -20,7 +20,9 @@ class TopicSelector:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        topics_config_path: Optional[str] = None
+        topics_config_path: Optional[str] = None,
+        use_google_sheets: bool = False,
+        google_spreadsheet_id: Optional[str] = None
     ):
         """
         初期化
@@ -28,9 +30,13 @@ class TopicSelector:
         Args:
             api_key: Claude API Key
             topics_config_path: トピック設定ファイルのパス
+            use_google_sheets: Googleスプレッドシートを使用するか
+            google_spreadsheet_id: GoogleスプレッドシートID
         """
         self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
         self.topics_config_path = topics_config_path or "./config/topics.yaml"
+        self.use_google_sheets = use_google_sheets or os.getenv("USE_GOOGLE_SHEETS", "").lower() == "true"
+        self.google_spreadsheet_id = google_spreadsheet_id or os.getenv("GOOGLE_SPREADSHEET_ID")
 
         if self.api_key:
             self.client = anthropic.Anthropic(api_key=self.api_key)
@@ -39,10 +45,39 @@ class TopicSelector:
             self.client = None
             logger.warning("ANTHROPIC_API_KEYが設定されていません。ローカルトピックのみ使用可能です。")
 
+        # Google Sheets連携の初期化
+        self.sheets_integration = None
+        if self.use_google_sheets:
+            try:
+                from .google_sheets_integration import GoogleSheetsIntegration
+                self.sheets_integration = GoogleSheetsIntegration()
+                if self.sheets_integration.is_available():
+                    logger.info("Google Sheets連携を有効化しました")
+                else:
+                    logger.warning("Google Sheets連携の初期化に失敗しました")
+            except ImportError:
+                logger.warning("Google Sheets連携モジュールが利用できません")
+
         self.predefined_topics = self._load_predefined_topics()
 
     def _load_predefined_topics(self) -> List[Dict]:
         """事前定義されたトピックを読み込む"""
+
+        # Googleスプレッドシートから読み込みを試みる
+        if self.sheets_integration and self.sheets_integration.is_available() and self.google_spreadsheet_id:
+            try:
+                logger.info("Googleスプレッドシートからトピックを読み込み中...")
+                topics = self.sheets_integration.get_topics_from_sheet(
+                    self.google_spreadsheet_id,
+                    worksheet_name="Topics"
+                )
+                if topics:
+                    logger.info(f"Googleスプレッドシートから{len(topics)}カテゴリのトピックを読み込みました")
+                    return topics
+                else:
+                    logger.warning("スプレッドシートにトピックがありません。デフォルトを使用します。")
+            except Exception as e:
+                logger.warning(f"スプレッドシートからの読み込みに失敗: {e}")
 
         # デフォルトのトピック
         default_topics = [
@@ -201,7 +236,7 @@ class TopicSelector:
 
         Args:
             count: 生成するトピック数
-            strategy: 選択戦略 (random, trending, category)
+            strategy: 選択戦略 (random, trending, category, sheet)
             **kwargs: 追加パラメータ
 
         Returns:
@@ -212,7 +247,11 @@ class TopicSelector:
         topics = []
 
         for i in range(count):
-            if strategy == "random":
+            if strategy == "sheet":
+                # スプレッドシート優先、フォールバックはランダム
+                fallback = kwargs.get('fallback_strategy', 'random')
+                topic = self.select_topic_with_sheet_priority(fallback)
+            elif strategy == "random":
                 topic = self.select_random_topic()
             elif strategy == "trending":
                 interests = kwargs.get('interests', None)
@@ -309,3 +348,59 @@ class TopicSelector:
     def get_available_categories(self) -> List[str]:
         """利用可能なカテゴリの一覧を取得"""
         return [cat.get('category', '') for cat in self.predefined_topics]
+
+    def get_today_topic_from_sheet(self) -> Optional[str]:
+        """
+        Googleスプレッドシートから今日のトピックを取得
+
+        Returns:
+            今日のトピック（見つからない場合はNone）
+        """
+        if not self.sheets_integration or not self.google_spreadsheet_id:
+            return None
+
+        try:
+            today_entry = self.sheets_integration.get_today_topic(
+                self.google_spreadsheet_id,
+                worksheet_name="Schedule"
+            )
+
+            if today_entry:
+                topic = today_entry.get('topic', '')
+                logger.info(f"スプレッドシートから今日のトピックを取得: {topic}")
+                return topic
+
+            return None
+
+        except Exception as e:
+            logger.error(f"今日のトピック取得エラー: {e}")
+            return None
+
+    def select_topic_with_sheet_priority(self, fallback_strategy: str = "random") -> str:
+        """
+        スプレッドシート優先でトピックを選択
+
+        まずスプレッドシートから今日のトピックを取得し、
+        見つからない場合は指定された戦略でフォールバック
+
+        Args:
+            fallback_strategy: フォールバック時の選択戦略
+
+        Returns:
+            選択されたトピック
+        """
+        # まずスプレッドシートから取得を試みる
+        topic = self.get_today_topic_from_sheet()
+
+        if topic:
+            return topic
+
+        # フォールバック
+        logger.info(f"スプレッドシートにトピックがないため、{fallback_strategy}戦略で選択")
+
+        if fallback_strategy == "trending":
+            return self.generate_trending_topic()
+        elif fallback_strategy == "random":
+            return self.select_random_topic()
+        else:
+            return self.select_random_topic()

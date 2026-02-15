@@ -61,8 +61,8 @@ def main():
         '--topic-strategy',
         type=str,
         default='random',
-        choices=['random', 'trending', 'category'],
-        help='トピック選択戦略'
+        choices=['random', 'trending', 'category', 'sheet'],
+        help='トピック選択戦略（sheet: Googleスプレッドシートから取得）'
     )
     parser.add_argument(
         '--category',

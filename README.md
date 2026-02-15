@@ -6,6 +6,7 @@ ClaudeとVrewを組み合わせて、毎日自動的に動画を生成するシ�
 
 - **自動スクリプト生成**: Claude APIを使用して、魅力的な動画スクリプトを自動生成
 - **トピック自動選定**: トレンド分析やカテゴリ別選択で毎日異なるトピックを提供
+- **Googleスプレッドシート連携**: スプレッドシートから毎日のトピックやスケジュールを管理
 - **Vrew連携**: Vrewが読み込める形式（SRT、JSON、テキスト）でファイルを出力
 - **スケジューリング**: GitHub ActionsまたはCronで毎日定時実行
 - **カスタマイズ可能**: トピック、スタイル、動画の長さなどを柔軟に設定
@@ -21,6 +22,7 @@ douga/
 │   ├── claude_script_generator.py      # Claude APIでスクリプト生成
 │   ├── vrew_integration.py             # Vrew連携モジュール
 │   ├── topic_selector.py               # トピック自動選定
+│   ├── google_sheets_integration.py    # Google Sheets連携
 │   └── video_pipeline.py               # パイプライン管理
 ├── config/
 │   ├── topics.yaml                     # トピック設定
@@ -109,6 +111,9 @@ python main.py --topic-strategy trending
 
 # カテゴリ指定
 python main.py --topic-strategy category --category "テクノロジー"
+
+# Googleスプレッドシートから取得
+python main.py --topic-strategy sheet
 ```
 
 #### 複数の動画を生成
@@ -209,12 +214,72 @@ python main.py --auto-render
     - トピック3
 ```
 
+## Googleスプレッドシート連携
+
+Googleスプレッドシートから動画のトピックやスケジュールを管理できます。
+
+### セットアップ
+
+1. **スプレッドシートの準備**
+   - 新しいGoogleスプレッドシートを作成
+   - 「Topics」「Schedule」シートを作成
+   - 詳細は [`docs/google-sheets-template.md`](docs/google-sheets-template.md) を参照
+
+2. **サービスアカウントの作成**
+   - Google Cloud Consoleでサービスアカウントを作成
+   - 認証キー（JSON）をダウンロード
+   - `config/google_credentials.json` として保存
+
+3. **環境変数の設定**
+
+```bash
+USE_GOOGLE_SHEETS=true
+GOOGLE_SPREADSHEET_ID=your_spreadsheet_id_here
+GOOGLE_CREDENTIALS_PATH=./config/google_credentials.json
+```
+
+4. **スプレッドシートの共有**
+   - サービスアカウントのメールアドレスと共有
+   - 編集権限を付与
+
+### 使い方
+
+#### 今日のトピックをスプレッドシートから取得
+
+```bash
+python main.py --topic-strategy sheet
+```
+
+システムは以下の順序で動作：
+1. Scheduleシートから今日の日付のトピックを検索
+2. 見つかった場合はそのトピックを使用
+3. 見つからない場合はランダム選択にフォールバック
+
+#### スプレッドシート形式
+
+**Topicsシート:**
+```
+| Category    | Topic              |
+|-------------|-------------------|
+| テクノロジー | AI技術の最新動向    |
+| ビジネス     | リモートワークのコツ |
+```
+
+**Scheduleシート:**
+```
+| Date       | Topic           | Duration | Style       |
+|------------|-----------------|----------|-------------|
+| 2026-02-15 | AI技術の最新動向 | 60       | informative |
+```
+
+詳細なテンプレートと設定方法は [`docs/google-sheets-template.md`](docs/google-sheets-template.md) を参照してください。
+
 ## コマンドラインオプション
 
 | オプション | 説明 | デフォルト |
 |-----------|------|-----------|
 | `--topic` | 動画のトピック | 自動選択 |
-| `--topic-strategy` | トピック選択戦略（random/trending/category） | random |
+| `--topic-strategy` | トピック選択戦略（random/trending/category/sheet） | random |
 | `--category` | カテゴリ指定 | - |
 | `--duration` | 動画の長さ（秒） | 60 |
 | `--style` | 動画のスタイル（informative/entertaining/educational） | informative |
